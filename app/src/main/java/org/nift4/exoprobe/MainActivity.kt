@@ -3,6 +3,7 @@ package org.nift4.exoprobe
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -65,6 +66,7 @@ class MainActivity : ComponentActivity(), Player.Listener {
 				Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
 					val stateV = rememberScrollState()
 					val tracksAsState = trackState.collectAsState()
+					val errorAsState = errorState.collectAsState()
 					Column(modifier = Modifier
 						.fillMaxSize()
 						.verticalScroll(stateV).padding(4.dp)
@@ -77,9 +79,11 @@ class MainActivity : ComponentActivity(), Player.Listener {
 						}
 						Spacer(Modifier.size(5.dp))
 						val tracks = tracksAsState.value
-						if (tracks == null) {
+						val error = errorAsState.value
+
+						if (tracks == null && error == null) {
 							Text("Select something to get started")
-						} else {
+						} else if (tracks != null) {
 							Text("Results: (${tracks.groups.size} tracks total)")
 							var i = 0
 							for (trackGroup in tracks.groups) {
@@ -152,10 +156,29 @@ class MainActivity : ComponentActivity(), Player.Listener {
 								i++
 							}
 						}
+						if (error != null) {
+							Card(Modifier.padding(8.dp)) {
+								Column(
+									Modifier
+										.fillMaxWidth()
+										.padding(8.dp)
+								) {
+									Text(
+										text = "An error occurred",
+										style = MaterialTheme.typography.headlineLarge
+									)
+									Text(Log.getStackTraceString(error))
+								}
+							}
+						}
 					}
 				}
 			}
 		}
+	}
+
+	override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+		trackState.value = null
 	}
 
 	override fun onTracksChanged(tracks: Tracks) {
